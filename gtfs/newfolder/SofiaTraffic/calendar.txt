@@ -1,5 +1,0 @@
-service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date
-weekday_service,1,1,1,1,1,0,0,20241028,20241104
-holiday_service,0,0,0,0,0,1,1,20241028,20241104
-weekday_service_night,1,1,1,1,1,0,0,20241028,20241104
-holiday_service_night,0,0,0,0,0,1,1,20241028,20241104
