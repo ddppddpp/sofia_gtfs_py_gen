@@ -311,7 +311,7 @@ def main (argv):
     """"
     call generate_gtfs()
     """
-    #generate_gtfs()
-    create_dataset_zip()
+    generate_gtfs()
+    
 if __name__ == "__main__":
     sys.exit(main(sys.argv))

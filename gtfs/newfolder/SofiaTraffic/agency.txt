@@ -1,0 +1,4 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_lang
+sfagency_001,Столичен електротранспорт ЕАД, http://www.elektrotransportsf.com, EET, bg
+sfagency_002, Столичен автотранспорт ЕАД, https://www.sofiabus.bg, EET, bg
+sfagency_003, Метрополитен ЕАД, https://www.metropolitan.bg, EET, bg
