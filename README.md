@@ -17,6 +17,7 @@ The output is currently hardcoded to the gtfs/ subdirectory of the current path.
 
 TODO
 
+- Fix inclomplete routes
 - Error exceptions
 - Eliminate commented-out code
 - Optimize for performance

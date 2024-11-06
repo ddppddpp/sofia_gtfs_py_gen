@@ -45,7 +45,6 @@ def fetch_data_from_sofiatraffic(url, payload):
     # check if this has already been called so we can re-use it?
     session = get_sofia_traffic_session()
     tokens = session.cookies.get_dict()
-    #print(tokens)
     # custom headers
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:127.0) Gecko/20100101 Firefox/127.0",
             "Accept": "application/json, text/plain, */*",
@@ -178,6 +177,72 @@ def generate_routes_txt(list_of_lines: list):
 
 def generate_trips_and_stop_times_txt(list_of_lines: list):
     """
+    list_of_lines: list of jsons
+        line_id: int
+        name: int
+        ext_id: str <-- what is shown tot he public i.e. A84, TM20, TB5
+        type: int
+        color: hex string starting with #
+        icon: string (uri)
+
+    schedule json:
+        line: json
+            id: int ?
+            ext_id: str <--- references list of lines
+            is_active: int (1/0)
+            has_single_directon: int (1/0)
+            type: int (?)
+            ...
+        routes:
+          0: (probably means direction A->B)
+            id: int (unique, used for route_id)
+            line_id: int (matches route 1)
+            name: str (matches the bus signs)
+            type: int (?)
+            ext_id: str (again)
+            route_ref: int (?0 for both examples)
+            details:
+              id: int (matches routes->0->id)
+              route_id: int (matches above)
+              type: int (0)
+              is_actie: int (0/1)
+                polyline: str ("LINESTRING (23.414509794810364 42.656353210...)
+              description: null
+              continious_pickup: null
+              continious_drop_off: null
+            segments: list
+              0:
+                id: int (segment id?)
+                route_id: int (matches above, so route->segment)
+                sequence: int (matches segment number)
+                start_stop_id: int (so far unmatched)
+                end_stop_id: int
+                poyline
+                length: float (segment lenght in meters?)
+                stop: json
+                    id: int (matches start_stop_id above)
+                    ext_id: string (2 leters - vehicle type and 4 digits -stop code from all_stops.json)
+                    code: int (4 digits -> stop code)
+                    type: int (vehicle type)
+                    is_active: int (1/0)
+                    longitude: float
+                    latitude: float
+                    description: null
+                    times: list
+                        id: int (not unique, not ordered)
+                        weekend: (0/1)  <--- use this
+                        code: null
+                        time: (hh:mm:ss)
+                        item_id: int (5 digit, unique)
+                        route_id: int matches above
+                        stop_id: int matched above
+
+
+
+          1: (probably means direction B->A)
+            incrementing integer starting from 0
+
+        
     - for every line in all_lines.json get a schedule
     - for every route in the json, get the route_id and set it as trip_id
     - for every route in the json, get the name and set it as trip_headsign
@@ -195,13 +260,13 @@ def generate_trips_and_stop_times_txt(list_of_lines: list):
     """
     file_name_trips = 'gtfs/trips.txt'
     file_name_stop_times = 'gtfs/stop_times.txt'
-    timepoint = str(0) #arrival and departure times are approximate
+    timepoint = str(0) #arrival and departure times are approximate <-- move to contstants?
     with open(file_name_trips, 'wt', encoding="utf-8") as fd_trips, open(file_name_stop_times, 'wt', encoding="utf-8") as fd_stop_times:
         logger.info('Generating trips.txt...')
         #header for the trips file
         fd_trips.write("route_id,service_id,trip_id,trip_headsign\n")
         logger.info('Generating stop_times.txt...')
-        #header for the trips file
+        #header for the stop_times file
         fd_stop_times.write("trip_id,arrival_time,departure_time,stop_id,stop_sequence,timepoint\n")
         for line in list_of_lines:
             logger.info("processing line %s",line["ext_id"])
@@ -210,26 +275,55 @@ def generate_trips_and_stop_times_txt(list_of_lines: list):
                 ##!!! Don't forget to check if the route is active
                 #try if route["details"].["is_active"]:
                 logger.info('Processing route %s',str(route["id"]))
-                
                 sequence = 1
+                #try to innitialize trips once per route
+                trips = []
+                debug_max_trips_per_route = 0
                 for segment in route["segments"]:
                     stop = segment["stop"]
                     if stop["is_active"]:
-                        # temp_time = []
+                        # I can't find a valid trip id, so I'm making my own
+                        # route_id + wd/we + int
+                        temp_time_weekday = []
+                        temp_time_weekend = []
                         for time in stop["times"]:
-                        #     temp_time.append(time["time"])
-                        # temp_time.sort()
-                        # for new_time in temp_time:
-                            # testing w/out sorting from here
-                            #trips
-                            ## TODO!!!!      write entries for all services operating on this trip
-                            #route_id,service_id,trip_id,trip_headsign
-                            fd_trips.write(str(line["line_id"])+","+"weekday_service,"+str(time["item_id"])+","+str(route["name"]).replace(',',' ')+"\n")
-                            #repeat for holidays, etc. services
-                            #stop_times
-                            #trip_id,arrival_time,departure_time,stop_id,stop_sequence,timepoint                     
-                            fd_stop_times.write(str(time["item_id"])+","+str(time["time"])+","+str(time["time"])+","+str(stop["code"])+","+str(sequence)+","+timepoint+"\n")
+                            if time["weekend"]:
+                                temp_time_weekend.append(time["time"])
+                            else:
+                                temp_time_weekday.append(time["time"])
+                        #try without sorting
+                        temp_time_weekday.sort()
+                        if len(temp_time_weekday) > debug_max_trips_per_route:
+                            debug_max_trips_per_route = int(len(temp_time_weekday))
+                        #the trips logic is currently executed for every stop
+                        #but the file is only logged for the last stop
+                        #so if one of the stops has more trips than the last one
+                        #it gets overwritten
+                        #try to fix it!
+                        #trips = []
+                        for index, new_weekday_time in enumerate(temp_time_weekday):
+                            temp_trip_id = str(str(route["id"])+'wd'+str(index))
+                            #route_id,service_id,trip_id,trip_headsign\n
+                            trips.append(str(line["line_id"])+","+
+                                           "weekday_service,"+temp_trip_id+","+
+                                           str(route["name"]).replace(',',' ')+"\n")
+                            #trip_id,arrival_time,departure_time,stop_id,stop_sequence,timepoint\n
+                            fd_stop_times.write(temp_trip_id+","+
+                                                str(new_weekday_time)+","+
+                                                str(new_weekday_time)+","+
+                                                str(stop["code"])+","+
+                                                str(sequence)+","+
+                                                timepoint+"\n")
+                        logger.info("route %s stop %s trips %s", str(temp_trip_id),str(stop['code']),str(debug_max_trips_per_route))
+                        #make sure trip value are unique
+                        #turn the list into a dict - unique values, oredered
+                        trips = list(dict.fromkeys(trips))
+                        # temp_time_weekend.sort()
                     sequence+=1
+                for trip in trips:
+                    fd_trips.write(trip)
+                logger.info("Logged %s trips", len(trips))
+                
                 logger.info('Processing route %s complete',route["id"])
             logger.info("processing line %s complete",line["ext_id"])
 
@@ -306,12 +400,50 @@ def generate_gtfs():
     create_dataset_zip()
     logger.info('Archive succesfully created. End.')
 
+def trips_and_stop_times_debug(list_of_lines: list):
+    '''
+    debug funciton
+    '''
+    line = {'line_id': 82, 'name': '20', 'ext_id': 'TM20', 'type': 2, 'color': '#F7941F', 'icon': '/images/transport_types/tram.png'}
+    print("trip_id,arrival_time,departure_time,stop_id,stop_sequence,timepoint\n")
+    logger.info("processing line %s",line["ext_id"])
+    schedule = get_schedule(line['ext_id'])
+    for route in schedule.json()['routes']:
+        # check if route is active
+        logger.info('Processing route %s',str(route["id"]))
+        sequence = 1
+        for segment in route["segments"]:
+            stop = segment["stop"]
+            temp_time_weekday = []
+            temp_time_weekend = []
+            if stop["is_active"]:
+                for time in stop["times"]:
+                    if time["weekend"]:
+                        temp_time_weekend.append(time["time"])
+                    else:
+                        temp_time_weekday.append(time["time"])
+                temp_time_weekday.sort()
+                temp_time_weekend.sort()
+
+                trips = []
+                for index, new_weekday_time in enumerate(temp_time_weekday):
+                    temp_trip_id = str(str(route["id"])+'wd'+str(index))
+                    #print('trip_id=',temp_trip_id,"\n")
+                    trips.append(str(line["line_id"])+","+
+                                           "weekday_service,"+temp_trip_id+","+
+                                           str(route["name"]).replace(',',' ')+"\n")
+
+    trips = list(dict.fromkeys(trips))
+    print('number of trips: ',len(trips),'\n')
 
 def main (argv):
     """"
     call generate_gtfs()
     """
+    #check if we need to clear an old archive
     generate_gtfs()
+    #trips_and_stop_times_debug([])
+
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
