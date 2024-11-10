@@ -1,2 +1,2 @@
 feed_publisher_name,feed_publisher_url,feed_lang,feed_start_date,feed_end_date
-ddppddpp,https://github.com/ddppddpp/sofia_gtfs_py_gen,bg,20241028,20241104
+ddppddpp,https://github.com/ddppddpp/sofia_gtfs_py_gen,bg,20241110,20241117
