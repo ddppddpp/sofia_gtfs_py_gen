@@ -17,16 +17,16 @@ from string import capwords
 import zipfile
 import logging
 import requests
-from utils import generate_track_from_segments, generate_timetables_for_schedule
-
+#from utils import generate_track_from_segments
+from utils import generate_timetables_for_schedule
 
 from const import (
     SCHEDULES_URL,
     STOPS_URL,
 #    VIRTUAL_TABLE_URL,
     LINES_URL
-)
 
+)
 logger = logging.getLogger(__name__)
 
 
@@ -55,7 +55,8 @@ def fetch_data_from_sofiatraffic(url, payload):
             "X-Requested-With": "XMLHttpRequest",
             "Content-Type": "application/json",
             "X-XSRF-TOKEN": urllib.parse.unquote(tokens['XSRF-TOKEN']),
-            "Cookie": 'sofia_traffic_session='+urllib.parse.unquote(tokens['sofia_traffic_session']),
+            "Cookie": 'sofia_traffic_session='+
+            urllib.parse.unquote(tokens['sofia_traffic_session']),
            "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin",
@@ -271,43 +272,63 @@ def generate_trips_and_stop_times_txt(list_of_lines: list):
         #header for the stop_times file
         fd_stop_times.write("trip_id,arrival_time,departure_time,stop_id,stop_sequence,timepoint\n")
         for line in list_of_lines:
-            logger.info("processing line %s",line["ext_id"])
+            logger.debug("processing line %s",line["ext_id"])
+            #these are repeated calls to the API
+            #wrap in some timeout logic, sleep cycle if something fails...
             schedule = get_schedule(line['ext_id'])
             for route in schedule.json()['routes']:
                 ##!!! Don't forget to check if the route is active
                 #try if route["details"].["is_active"]:
-                logger.info('Processing route %s',str(route["id"]))
+                logger.debug('Processing route %s',str(route["id"]))
                 sequence = 1
                 #try to innitialize trips once per route
                 trips = []
-                debug_max_trips_per_route = 0
+                #debug_max_trips_per_route = 0
                 for segment in route["segments"]:
                     stop = segment["stop"]
                     if stop["is_active"]:
-
-                        #switch to route['ext_id] as it seems to be unique
-                        #also, times['id'] is consistent accross stops
+                        #check for duplicate times to workaround sofiatraffic.bg errors
+                        #init temp variable for the workatround
+                        temp_time_str = ''
                         for time in stop['times']:
-                            if time['weekend']:
-                                temp_trip_id = str(route["ext_id"])+'weekend'+str(time['id'])
+                            #check for duplicate times to workaround sofiatraffic.bg errors
+                            if str(time['time']) != temp_time_str:
+                                #separate secondaries - what are they actually?
+                                if 'secondary' in time:
+                                    if time['secondary']:
+                                        time['id'] = 'sec'+str(time['id'])
+                                        logger.debug('newtimeid=%s',time['id'])
+                                if time['weekend']:
+                                    temp_trip_id = str(route["ext_id"])+'weekend'+str(time['id'])
+                                    if temp_trip_id not in trips:
+                                    #route_id,service_id,trip_id,trip_headsign\n
+                                        trips.append(str(str(line["line_id"])+","+
+                                                "holiday_service,"+temp_trip_id+","+
+                                                capwords(str(route["name"]).replace(',',' ')))+"\n")
+                                else:
+                                    temp_trip_id = str(route["ext_id"])+'weekday'+str(time['id'])
+                                    if temp_trip_id not in trips:
+                                    #route_id,service_id,trip_id,trip_headsign\n
+                                        trips.append(str(str(line["line_id"])+","+
+                                                "weekday_service,"+temp_trip_id+","+
+                                                capwords(str(route["name"]).replace(',',' ')))+"\n")
+
+                                #trip_id,arrival_time,departure_time,stop_id,stop_sequence,timepoint\n
+                                #if time is after midnight, switch 00:02 to 24:02
+                                #warning - edge case - departure time 24:55, arrival time 01:00 
+                                if str(time['time']).startswith('00'):
+                                    time['time'] = '24'+str(time['time'])[2:]
+                                fd_stop_times.write(temp_trip_id+","+
+                                                    str(time['time'])+","+
+                                                    str(time['time'])+","+
+                                                    str(stop["code"])+","+
+                                                    str(sequence)+","+
+                                                    timepoint+"\n")
+                                #store the current time iterration in the temp variable
+                                temp_time_str = str(time['time'])
                             else:
-                                temp_trip_id = str(route["ext_id"])+'weekday'+str(time['id'])
-                            if temp_trip_id not in trips:
-                                #route_id,service_id,trip_id,trip_headsign\n
-                                trips.append(str(str(line["line_id"])+","+
-                                            "weekday_service,"+temp_trip_id+","+
-                                            capwords(str(route["name"]).replace(',',' ')))+"\n")
-                                    
-                            #trip_id,arrival_time,departure_time,stop_id,stop_sequence,timepoint\n
-                            # if time is after midnight, switch 00:02 to 24:02
-                            if str(time['time']).startswith('00'):
-                                time['time'] = '24'+str(time['time'])[2:]
-                            fd_stop_times.write(temp_trip_id+","+
-                                                str(time['time'])+","+
-                                                str(time['time'])+","+
-                                                str(stop["code"])+","+
-                                                str(sequence)+","+
-                                                timepoint+"\n")
+                                #duplicate found
+                                logger.warning("duplicate found")
                         #logger.info("route %s stop %s trips %s", str(temp_trip_id),str(stop['code']),str(debug_max_trips_per_route))
                         #make sure trip value are unique
                         #turn the list into a dict - unique values, oredered
@@ -316,10 +337,10 @@ def generate_trips_and_stop_times_txt(list_of_lines: list):
                     sequence+=1
                 for trip in trips:
                     fd_trips.writelines(trip)
-                logger.info("Logged %s trips", len(trips))
-                
-                logger.info('Processing route %s complete',route["id"])
-            logger.info("processing line %s complete",line["ext_id"])
+                logger.debug("Logged %s trips", len(trips))
+
+                logger.debug('Processing route %s complete',route["id"])
+            logger.debug("processing line %s complete",line["ext_id"])
 
 def generate_calendar_txt():
     """
@@ -329,6 +350,7 @@ def generate_calendar_txt():
     #set start_date and end_date
     start_date = date.today()
     end_date = start_date + timedelta(days=7)
+    logger.info("generating calendar.txt")
     file_name = 'gtfs/calendar.txt'
     with open(file_name, 'wt', encoding="utf-8") as fd:
         #header
@@ -377,7 +399,32 @@ def generate_gtfs():
     """
     call the various functions to generate the gtfs-compliant files
     """
-    logging.basicConfig(filename='gtfs_gen.log', level=logging.INFO, format='%(asctime)s %(message)s')
+    console_handler = logging.StreamHandler()
+    file_handler = logging.FileHandler(
+        "gtfs_gen.log", 
+        mode="a", 
+        encoding="utf-8"
+    )
+    logger.setLevel("DEBUG")
+    console_handler.setLevel("INFO")
+    file_handler.setLevel("DEBUG")
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(message)s",
+        style="%",
+        datefmt="%Y-%m-%d %H:%M",
+    )
+    console_handler.setFormatter(formatter)
+    file_handler.setFormatter(formatter)
+
+    # logging.basicConfig(
+    #     filename='gtfs_gen.log', 
+    #     level=logging.DEBUG, 
+    #     format="%(asctime)s - %(levelname)s - %(message)s",
+    #     style="%",
+    #     datefmt="%Y-%m-%d %H:%M",
+    # )
     logger.info('Starting GTFS Generation')
     #check if folder exists?
     Path("./gtfs").mkdir(parents=True, exist_ok=True)
@@ -389,6 +436,7 @@ def generate_gtfs():
     generate_trips_and_stop_times_txt(list_of_lines)
     generate_feed_info_txt()
     logger.info('Completing GTFS Generation')
+    #move existing .zip to archive??
     logger.info('Creating Archive...')
     #gzip the folder?
     create_dataset_zip()
@@ -431,23 +479,42 @@ def trips_and_stop_times_debug(list_of_lines: list):
     print('number of trips: ',len(trips),'\n')
 
 
-def debug_line(line_code: str):
-    '''
-    hack at it till it works
-    '''
-    line_schedule = get_schedule(line_code)
-    #line_tracks = generate_track_from_segments(line_schedule.json()['routes'])
-    timetable = generate_timetables_for_schedule(line_schedule)
+# def debug_line(line_code: str):
+#     '''
+#     hack at it till it works
+#     '''
+#     line_schedule = get_schedule(line_code)
+#     #line_tracks = generate_track_from_segments(line_schedule.json()['routes'])
+#     timetable = generate_timetables_for_schedule(line_schedule)
 
+def debug_generate_schedule_json(ext_id: str):
+    """ 
+    call the schedules url with a line id and return a schedule
+    """
+    payload = json.dumps({"ext_id":ext_id})
+    response = fetch_data_from_sofiatraffic(SCHEDULES_URL,payload=payload)
+    file_name = 'gtfs/'+str(ext_id)+'_schedule.json'
+    with open(file_name, 'wb') as fd:
+        for chunk in response.iter_content(chunk_size=128):
+            fd.write(chunk)
 
 def main (argv):
     """"
     call generate_gtfs()
     """
+    if len(argv) == 1:
     #check if we need to clear an old archive
-    generate_gtfs()
+        generate_gtfs()
+    elif (len(argv) > 1) and (len(argv) < 3):
+        if str(argv[1]) == '--debugschedule':
+            debug_generate_schedule_json(argv[2])
+    elif len(argv) > 2:
+        if str(argv[1]) == '--debugtrip':
+            schedule = get_schedule(str(argv[2]))
+            generate_timetables_for_schedule(schedule, argv[3])
     #trips_and_stop_times_debug([])
-#    debug_line('A84')
+    #debug_generate_schedule_json('A84')
+    #debug_line('A84')
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))

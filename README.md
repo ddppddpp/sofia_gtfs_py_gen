@@ -11,15 +11,16 @@ This is an excercise in python programing, ispired by the great work at
 The APIs are not documented, likely to change with no notice.
 The resulting dataset has been validated with the [Canonical GTFS Schedule Validator](https://gtfs-validator.mobilitydata.org/).
 
-##Usage
+## Usage
 
 Call ```python app.py``` to have the module call the APIs and generate the dataset.
 The output is currently hardcoded to the gtfs/ subdirectory of the current path.
 
-##TODO
+## TODO
 
 - ~Fix inclomplete routes~
 - Fix backwards time travel between stops (i.e. line A84, trip 9175)
+-- investigate secondary trips???
 - Investigate duplicate entires (i.e. M3 line)
 - Error exceptions
 - Eliminate commented-out code
@@ -27,3 +28,4 @@ The output is currently hardcoded to the gtfs/ subdirectory of the current path.
 - Optimize for API calls
 - Fix gtfs validator warnings
 - Integrate dataset validation as a test
+- automate releases (i.e. https://dev.to/ayoub3bidi/quick-tutorial-how-to-add-a-release-github-workflow-56ib)

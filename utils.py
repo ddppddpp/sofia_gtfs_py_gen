@@ -28,7 +28,7 @@ def generate_track_from_segments(routes: list):
     print(tracks)
     return tracks
 
-def generate_timetables_for_schedule(schedule: dict):
+def generate_timetables_for_schedule(schedule: dict, ext_trip_id: str):
     '''
     input structure
     schdeule -> json
@@ -57,9 +57,7 @@ def generate_timetables_for_schedule(schedule: dict):
     dict(car_id = time.id,
         stop_time:[stop_id, time])
     '''
-    timetable = []
-    entry = dict(trip_id=9175,
-                 stop_times=[])
+    entry = dict(trip_id=ext_trip_id,stop_times=[])
     for route in schedule.json()['routes']:
         print('route=',route['ext_id'],'\n')
         for segment in route['segments']:
@@ -67,11 +65,10 @@ def generate_timetables_for_schedule(schedule: dict):
                 # if time['time'] == '20:26:00' and segment['stop']['code']=='0593':
                 #     print ('time_id=',time['id'])
                 # if not time['weekend']:
-                    if time['id'] == 9175:
-                        stop_time = {'stop':segment['stop']['code'],
-                                         'time':time['time']}
-                        entry['stop_times'].append(stop_time)
+                if str(time['id']) == str(ext_trip_id):
+                    stop_time = {'stop':segment['stop']['code'],
+                                 'time':time['time']}
+                    entry['stop_times'].append(stop_time)
 
     print(entry)
     return entry
-
