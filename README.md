@@ -29,3 +29,4 @@ The output is currently hardcoded to the gtfs/ subdirectory of the current path.
 - Fix gtfs validator warnings
 - Integrate dataset validation as a test
 - automate releases (i.e. https://dev.to/ayoub3bidi/quick-tutorial-how-to-add-a-release-github-workflow-56ib)
+- explore json_extract to optimize parsing examples [here]([url](https://bcmullins.github.io/parsing-json-python/)) and [here]([url](https://hackersandslackers.com/extract-data-from-complex-json-python/))
