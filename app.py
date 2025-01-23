@@ -15,11 +15,13 @@ from datetime import date
 from datetime import timedelta
 from string import capwords
 import zipfile
-import logging
+#   import logging
 import requests
+
 #from utils import generate_track_from_segments
 from utils import generate_timetables_for_schedule
 from logger import logger
+from extract import json_extract
 
 from const import (
     SCHEDULES_URL,
@@ -49,7 +51,8 @@ def fetch_data_from_sofiatraffic(url, payload):
     session = get_sofia_traffic_session()
     tokens = session.cookies.get_dict()
     # custom headers
-    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:127.0) Gecko/20100101 Firefox/127.0",
+    headers = {"User-Agent":
+    "Mozilla/5.0 (X11; Linux x86_64; rv:127.0) Gecko/20100101 Firefox/127.0",
             "Accept": "application/json, text/plain, */*",
             "Accept-Language": "en-GB,en;q=0.9",
             "Accept-Encoding": "gzip, deflate, br",
@@ -67,7 +70,8 @@ def fetch_data_from_sofiatraffic(url, payload):
             "Referrer": "https://www.sofiatraffic.bg/bg/public-transport",
             "TE": "trailers"}
 
-    response = session.post(url, headers=headers, data=payload, timeout=(3.05, 27) )
+    response = session.post(url,
+    headers=headers, data=payload, timeout=(3.05, 27) )
     return response
 
 def get_all_stops():
@@ -265,7 +269,11 @@ def generate_trips_and_stop_times_txt(list_of_lines: list):
     file_name_trips = 'gtfs/trips.txt'
     file_name_stop_times = 'gtfs/stop_times.txt'
     timepoint = str(0) #arrival and departure times are approximate <-- move to contstants?
-    with open(file_name_trips, 'wt', encoding="utf-8") as fd_trips, open(file_name_stop_times, 'wt', encoding="utf-8") as fd_stop_times:
+    with open(file_name_trips,
+    'wt', 
+    encoding="utf-8") as fd_trips, open(file_name_stop_times,
+    'wt',
+    encoding="utf-8") as fd_stop_times:
         logger.info('Generating trips.txt...')
         #header for the trips file
         fd_trips.write("route_id,service_id,trip_id,trip_headsign\n")
@@ -314,9 +322,10 @@ def generate_trips_and_stop_times_txt(list_of_lines: list):
                                                 "weekday_service,"+temp_trip_id+","+
                                                 capwords(str(route["name"]).replace(',',' ')))+"\n")
 
-                                #trip_id,arrival_time,departure_time,stop_id,stop_sequence,timepoint\n
+                                #trip_id,arrival_time,
+                                # departure_time,stop_id,stop_sequence,timepoint\n
                                 #if time is after midnight, switch 00:02 to 24:02
-                                #warning - edge case - departure time 24:55, arrival time 01:00 
+                                #warning - edge case - departure time 24:55, arrival time 01:00
                                 if str(time['time']).startswith('00'):
                                     time['time'] = '24'+str(time['time'])[2:]
                                 fd_stop_times.write(temp_trip_id+","+
@@ -330,7 +339,8 @@ def generate_trips_and_stop_times_txt(list_of_lines: list):
                             else:
                                 #duplicate found
                                 logger.warning("duplicate found")
-                        #logger.info("route %s stop %s trips %s", str(temp_trip_id),str(stop['code']),str(debug_max_trips_per_route))
+                        #logger.info("route %s stop %s trips %s",
+                        # str(temp_trip_id),str(stop['code']),str(debug_max_trips_per_route))
                         #make sure trip value are unique
                         #turn the list into a dict - unique values, oredered
                         trips = list(dict.fromkeys(trips))
@@ -357,10 +367,14 @@ def generate_calendar_txt():
         #header
         fd.write("service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\n")
         #weekday, week night, holiday + night
-        fd.write("weekday_service,1,1,1,1,1,0,0,"+start_date.strftime("%Y%m%d")+","+end_date.strftime("%Y%m%d")+"\n")
-        fd.write("holiday_service,0,0,0,0,0,1,1,"+start_date.strftime("%Y%m%d")+","+end_date.strftime("%Y%m%d")+"\n")
-        fd.write("weekday_service_night,1,1,1,1,1,0,0,"+start_date.strftime("%Y%m%d")+","+end_date.strftime("%Y%m%d")+"\n")
-        fd.write("holiday_service_night,0,0,0,0,0,1,1,"+start_date.strftime("%Y%m%d")+","+end_date.strftime("%Y%m%d")+"\n")
+        fd.write("weekday_service,1,1,1,1,1,0,0,"
+        +start_date.strftime("%Y%m%d")+","+end_date.strftime("%Y%m%d")+"\n")
+        fd.write("holiday_service,0,0,0,0,0,1,1,"
+        +start_date.strftime("%Y%m%d")+","+end_date.strftime("%Y%m%d")+"\n")
+        fd.write("weekday_service_night,1,1,1,1,1,0,0,"
+        +start_date.strftime("%Y%m%d")+","+end_date.strftime("%Y%m%d")+"\n")
+        fd.write("holiday_service_night,0,0,0,0,0,1,1,"
+        +start_date.strftime("%Y%m%d")+","+end_date.strftime("%Y%m%d")+"\n")
 
 def generate_feed_info_txt():
     """
@@ -371,7 +385,8 @@ def generate_feed_info_txt():
     file_name = 'gtfs/feed_info.txt'
     with open(file_name, 'wt', encoding="utf-8") as fd:
         fd.write("feed_publisher_name,feed_publisher_url,feed_lang,feed_start_date,feed_end_date\n")
-        fd.write("ddppddpp,https://github.com/ddppddpp/sofia_gtfs_py_gen,bg,"+start_date.strftime("%Y%m%d")+","+end_date.strftime("%Y%m%d")+"\n")
+        fd.write("ddppddpp,https://github.com/ddppddpp/sofia_gtfs_py_gen,bg,"
+        +start_date.strftime("%Y%m%d")+","+end_date.strftime("%Y%m%d")+"\n")
 
 def create_dataset_zip():
     """
@@ -381,7 +396,8 @@ def create_dataset_zip():
     fileset= ['gtfs/agency.txt','gtfs/calendar.txt','gtfs/routes.txt',
     'gtfs/stop_times.txt','gtfs/stops.txt','gtfs/trips.txt','gtfs/feed_info.txt']
     try:
-        with zipfile.ZipFile('gtfs/SofiaTraffic.zip', 'a', compression=zipfile.ZIP_DEFLATED) as myzip:
+        with zipfile.ZipFile('gtfs/SofiaTraffic.zip',
+                            'a', compression=zipfile.ZIP_DEFLATED) as myzip:
             # myzip.write('gtfs/agency.txt')
             # myzip.write('gtfs/calendar.txt')
             # myzip.write('gtfs/routes.txt')
@@ -400,7 +416,7 @@ def generate_gtfs():
     """
     call the various functions to generate the gtfs-compliant files
     """
-    
+
     logger.info('Starting GTFS Generation')
     #check if folder exists?
     Path("./gtfs").mkdir(parents=True, exist_ok=True)
@@ -422,7 +438,12 @@ def trips_and_stop_times_debug(list_of_lines: list):
     '''
     debug funciton
     '''
-    line = {'line_id': 82, 'name': '20', 'ext_id': 'TM20', 'type': 2, 'color': '#F7941F', 'icon': '/images/transport_types/tram.png'}
+    line = {'line_id': 82,
+    'name': '20',
+    'ext_id': 'TM20',
+    'type': 2,
+    'color': '#F7941F',
+    'icon': '/images/transport_types/tram.png'}
     print("trip_id,arrival_time,departure_time,stop_id,stop_sequence,timepoint\n")
     logger.info("processing line %s",line["ext_id"])
     schedule = get_schedule(line['ext_id'])
