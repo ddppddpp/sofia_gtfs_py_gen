@@ -19,6 +19,7 @@ import logging
 import requests
 #from utils import generate_track_from_segments
 from utils import generate_timetables_for_schedule
+from logger import logger
 
 from const import (
     SCHEDULES_URL,
@@ -27,7 +28,7 @@ from const import (
     LINES_URL
 
 )
-logger = logging.getLogger(__name__)
+logger = logger()
 
 
 def get_sofia_traffic_session():
@@ -399,32 +400,7 @@ def generate_gtfs():
     """
     call the various functions to generate the gtfs-compliant files
     """
-    console_handler = logging.StreamHandler()
-    file_handler = logging.FileHandler(
-        "gtfs_gen.log", 
-        mode="a", 
-        encoding="utf-8"
-    )
-    logger.setLevel("DEBUG")
-    console_handler.setLevel("INFO")
-    file_handler.setLevel("DEBUG")
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
-    formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(message)s",
-        style="%",
-        datefmt="%Y-%m-%d %H:%M",
-    )
-    console_handler.setFormatter(formatter)
-    file_handler.setFormatter(formatter)
-
-    # logging.basicConfig(
-    #     filename='gtfs_gen.log', 
-    #     level=logging.DEBUG, 
-    #     format="%(asctime)s - %(levelname)s - %(message)s",
-    #     style="%",
-    #     datefmt="%Y-%m-%d %H:%M",
-    # )
+    
     logger.info('Starting GTFS Generation')
     #check if folder exists?
     Path("./gtfs").mkdir(parents=True, exist_ok=True)
