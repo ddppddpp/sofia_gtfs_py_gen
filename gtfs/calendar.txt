@@ -1,5 +1,5 @@
 service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date
-weekday_service,1,1,1,1,1,0,0,20250115,20250122
-holiday_service,0,0,0,0,0,1,1,20250115,20250122
-weekday_service_night,1,1,1,1,1,0,0,20250115,20250122
-holiday_service_night,0,0,0,0,0,1,1,20250115,20250122
+weekday_service,1,1,1,1,1,0,0,20250303,20250310
+holiday_service,0,0,0,0,0,1,1,20250303,20250310
+weekday_service_night,1,1,1,1,1,0,0,20250303,20250310
+holiday_service_night,0,0,0,0,0,1,1,20250303,20250310

@@ -21,7 +21,7 @@ import requests
 #from utils import generate_track_from_segments
 from utils import generate_timetables_for_schedule
 from logger import logger
-from extract import json_extract
+#from extract import json_extract
 
 from const import (
     SCHEDULES_URL,
@@ -127,7 +127,8 @@ def generate_agency_txt():
     """
     agencies = []
     agencies.append("agency_id,agency_name,agency_url,agency_timezone,agency_lang\n")
-    agencies.append("sfagency_001,Столичен електротранспорт ЕАД, http://www.elektrotransportsf.com, EET, bg\n")
+    agencies.append("sfagency_001,Столичен електротранспорт ЕАД,"\
+                    +" http://www.elektrotransportsf.com, EET, bg\n")
     agencies.append("sfagency_002, Столичен автотранспорт ЕАД, https://www.sofiabus.bg, EET, bg\n")
     agencies.append("sfagency_003, Метрополитен ЕАД, https://www.metropolitan.bg, EET, bg\n")
     file_name = 'gtfs/agency.txt'
@@ -229,9 +230,9 @@ def generate_trips_and_stop_times_txt(list_of_lines: list):
                 length: float (segment lenght in meters?)
                 stop: json
                     id: int (matches start_stop_id above)
-                    ext_id: string (2 leters - vehicle type and 4 digits -stop code from all_stops.json)
-                    code: int (4 digits -> stop code)
-                    type: int (vehicle type)
+                    ext_id: string (6 symbols)
+                    code: int (4 digits -> stop code from all_stops.json)
+                    type: int (vehicle type 2 letters)
                     is_active: int (1/0)
                     longitude: float
                     latitude: float
@@ -365,7 +366,8 @@ def generate_calendar_txt():
     file_name = 'gtfs/calendar.txt'
     with open(file_name, 'wt', encoding="utf-8") as fd:
         #header
-        fd.write("service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\n")
+        fd.write("service_id,monday,tuesday,wednesday,thursday,"\
+                 +"friday,saturday,sunday,start_date,end_date\n")
         #weekday, week night, holiday + night
         fd.write("weekday_service,1,1,1,1,1,0,0,"
         +start_date.strftime("%Y%m%d")+","+end_date.strftime("%Y%m%d")+"\n")
