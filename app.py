@@ -21,7 +21,7 @@ import requests
 #from utils import generate_track_from_segments
 from utils import generate_timetables_for_schedule
 from logger import logger
-#from extract import json_extract
+from extract import json_extract
 
 from const import (
     SCHEDULES_URL,
@@ -339,7 +339,13 @@ def generate_trips_and_stop_times_txt(list_of_lines: list):
                                 temp_time_str = str(time['time'])
                             else:
                                 #duplicate found
-                                logger.warning("duplicate found")
+                                logger.warning("duplicate found for line %s, "\
+                                               +"name %s, stop %s, trip %s, time %s",
+                                                line["ext_id"],
+                                                line["name"],
+                                                str(stop['code']),
+                                                temp_trip_id,
+                                                time['time'])
                         #logger.info("route %s stop %s trips %s",
                         # str(temp_trip_id),str(stop['code']),str(debug_max_trips_per_route))
                         #make sure trip value are unique
@@ -400,13 +406,6 @@ def create_dataset_zip():
     try:
         with zipfile.ZipFile('gtfs/SofiaTraffic.zip',
                             'a', compression=zipfile.ZIP_DEFLATED) as myzip:
-            # myzip.write('gtfs/agency.txt')
-            # myzip.write('gtfs/calendar.txt')
-            # myzip.write('gtfs/routes.txt')
-            # myzip.write('gtfs/stop_times.txt')
-            # myzip.write('gtfs/stops.txt')
-            # myzip.write('gtfs/trips.txt')
-            # myzip.write('gtfs/feed_info.txt')
             for file in fileset:
                 myzip.write(file,os.path.basename(file))
         myzip.close()
@@ -505,12 +504,15 @@ def main (argv):
     #check if we need to clear an old archive
         generate_gtfs()
     elif (len(argv) > 1) and (len(argv) < 3):
+        print(str(argv[1]))
         if str(argv[1]) == '--debugschedule':
-            debug_generate_schedule_json(argv[2])
-    elif len(argv) > 2:
-        if str(argv[1]) == '--debugtrip':
-            schedule = get_schedule(str(argv[2]))
-            generate_timetables_for_schedule(schedule, argv[3])
+            debug_generate_schedule_json(str(argv[2]))
+ #       elif str(argv[1]) == '--debugline':
+            
+    # elif len(argv) > 2:
+    #     if str(argv[1]) == '--debugtrip':
+    #         schedule = get_schedule(str(argv[2]))
+    #         generate_timetables_for_schedule(schedule, argv[3])
     #trips_and_stop_times_debug([])
     #debug_generate_schedule_json('A84')
     #debug_line('A84')

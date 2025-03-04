@@ -15,6 +15,9 @@ The resulting dataset has been validated with the [Canonical GTFS Schedule Valid
 
 Call ```python app.py``` to have the module call the APIs and generate the dataset.
 The output is currently hardcoded to the gtfs/ subdirectory of the current path.
+For debug purpouses there's a ```--debugschedule``` option that accepts a line name as an argument and outputs a .json file in the gtfs/ subdirectory.
+Example
+```python app.py --debugschedule A12```
 
 ## TODO
 
